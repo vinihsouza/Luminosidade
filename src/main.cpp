@@ -1,17 +1,23 @@
+/* =======================================================================
+   Envio de luminosidade, com deepSleep e FreeRTOS
+
+   ESP-WROOM-32U
+   Board: DevKitV1
+   Compilador: VS Code (Ext PlatformIO)
+
+   Autor: Eng. Vinícius Souza -> /in/eng-viniciussouza/
+   Data:  Julho de 2022
+======================================================================= */
+
 #include "main.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "wifiapp.h"
 #include "mqttapp.h"
 
 TaskHandle_t taskMqtt = NULL, taskWifi = NULL, taskOper = NULL;
 
-void vTaskWIFI(void *pvParameters);
-void vTaskMQTT(void *pvParameters);
-void vTaskOPER(void *pvParameters);
-
 void setup() {
   Serial.begin(115200);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, HIGH);
   xTaskCreatePinnedToCore(vTaskWIFI, "WIFI TASK", WIFI_TASK_SIZE, NULL, 5, &taskWifi, APP_CPU_NUM);
   xTaskCreatePinnedToCore(vTaskOPER, "OPER TASK", OPER_TASK_SIZE, NULL, 5, &taskOper, PRO_CPU_NUM);
 }
@@ -37,30 +43,39 @@ void vTaskWIFI(void *pvParameters) {
 }
 
 void vTaskMQTT(void *pvParameters) {
-  mqtt_initialize();
+  mqtt_connection(BOOTING);
   for ( ;; ) {
     if((millis() - mqttLastCommunication > MQTT_INTERVAL_COMMUNICATION) && mqttConnected && sendValue) {
       sendLuminosidade(luminosidade);
+      Serial.println("Leitura luminosidade: "); Serial.println(leituraLuminosidade);
+      Serial.println("luminosidade: "); Serial.println(luminosidade);
       mqttLastCommunication = millis();
-      sendValue = !sendValue;
+      sendValue = false;
+      if(leituraLuminosidade < LUMENS999) {
+        Serial.println("Entrando em modo deep sleep");
+        esp_deep_sleep_start();
+      }
     }
+    else if (!mqttConnected) mqtt_connection(BOOTING);
   }
 }
 
 void vTaskOPER(void *pvParameters) {
   disableCore0WDT();
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_35, HIGH);
   analogReadResolution(12);
   analogSetAttenuation(ADC_6db);
-  pinMode(LUMINOSIDADE, INPUT);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_25, ESP_EXT1_WAKEUP_ANY_HIGH);
+  pinMode(LUMINOSIDADE, INPUT); 
   for ( ;; ) {
     leituraLuminosidade = analogRead(LUMINOSIDADE);
-    if(leituraLuminosidade >= maxLuminosidade || leituraLuminosidade <= minLuminosidade) {
-      maxLuminosidade = leituraLuminosidade + 20;
-      minLuminosidade = leituraLuminosidade - 20;
-      luminosidade = leituraLuminosidade / 15;
+    if(leituraLuminosidade > maxLuminosidade || leituraLuminosidade < minLuminosidade) {
+      maxLuminosidade = leituraLuminosidade + 150;
+      minLuminosidade = leituraLuminosidade - 150;
+      if     (leituraLuminosidade >= LUMENS999) luminosidade = leituraLuminosidade / 4.095;
+      else if(leituraLuminosidade >= LUMENS170) luminosidade = leituraLuminosidade / 5.353;
+      else if(leituraLuminosidade >= LUMENS042) luminosidade = leituraLuminosidade / 12.19;
+      else if(leituraLuminosidade >= LUMENS000) luminosidade = leituraLuminosidade / 30.00;
       sendValue = true;
     }
-    if(!sendValue) esp_deep_sleep_start();
   }
 }

@@ -1,7 +1,9 @@
 #include <WiFi.h>
+/*Descomentar os comandos abaixo e em "" colocar o nome da sua rede e abaixo a senha.*/
 
-#define WIFISSID "2.4GHz_MINHACLARO"
-#define PASSWORD "Todesacocheio2"
+//#define WIFISSID "Sua rede"    //SSID
+//#define PASSWORD "Sua senha"   //PASSWORD
+#define HOSTNAME "FitSorocaba"
 #define WIFI_INTERVAL_COMMUNICATION 100
 
 enum CONNECTION {

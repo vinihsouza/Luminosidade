@@ -1,6 +1,7 @@
 #include "wifiapp.h"
 
 bool connecting;
+int firstTime;
 unsigned long wifiLastCommunication;
 
 void wifi_initialize(CONNECTION status) {
@@ -8,6 +9,7 @@ void wifi_initialize(CONNECTION status) {
     switch(status) {
         case NOT_CONNECTED:
             WiFi.begin(WIFISSID, PASSWORD);
+            WiFi.setHostname(HOSTNAME);
             Serial.println(); Serial.print("Establishing connection to WiFi");
             connecting = true;
         break;

@@ -1,14 +1,19 @@
 #include <PubSubClient.h>
 
-#define TOKEN "BBFF-PlEgfKJAI3HyKUUobiE6o7XWU5m61S"
+#define TOKEN "BBFF-w7SiUgmq0aA6OMQj7weUT1zzCcjFGw"
 #define VARIABLE_LABEL_LUMINOSIDADE "luminosidade"
-#define DEVICE_ID1 "62b26a42e41edb35493f96cc"
+#define DEVICE_ID1 "62c625ea06c36d000f07877f"
 #define SERVER "industrial.api.ubidots.com"
 #define PORT 1883
-#define TOPIC "/v1.6/devices/esp32"
+#define TOPIC "/v1.6/devices/esp32_luminosidade"
 #define MQTT_INTERVAL_COMMUNICATION 5000
 
+enum MQTT_CONNECTION {
+    BOOTING,
+    RECONNECTING
+};
+
 void sendLuminosidade(float luminosidade);
-bool mqtt_initialize();
+bool mqtt_connection(MQTT_CONNECTION status);
 
 extern bool mqttConnected;
